@@ -1,12 +1,12 @@
 #!/bin/bash
 
-SRCVER=example-1.0.0
+SRCVER=xmlrpc-c-1.25.26
 PKG=$SRCVER-1 # with build version
 
 # PKGDIR is set by 'pkg_build'. Usually "/var/lib/build/all/$PKG".
 PKGDIR=${PKGDIR:-/var/lib/build/all/$PKG}
-SRC=/var/spool/src/$SRCVER.tar.gz
-[ -f /var/spool/src/$SRCVER.tar.bz2 ] && SRC=/var/spool/src/$SRCVER.tar.bz2
+SRCDIR=/var/spool/src
+SRC=$SRCDIR/$SRCVER.tgz
 BUILDDIR=/var/tmp/src/$SRCVER
 DST="/var/tmp/install/$PKG"
 
@@ -21,33 +21,32 @@ function sedit {
 
 #########
 # Fetch sources
-./Fetch-source.sh || exit $?
+./Fetch-source.sh || exit 1
 pkg_uninstall # Uninstall any dependencies used by Fetch-source.sh
 
 #########
 # Install dependencies:
-# pkg_available dependency1-1 dependency2-1
-# pkg_install dependency1-1 || exit 2
-# pkg_install groff-1.21-1 || exit 2 # Needed to convert man-pages: see below
-
-# Compile against musl:
-# pkg_install musl-0.9.10-1 || exit 2 
-# export CC=musl-gcc
+pkg_available perl-5.10.1-1 autoconf-2.65-1 m4-1.4.14-1
+pkg_install perl-5.10.1-1 || exit 2
+pkg_install autoconf-2.65-1 || exit 2
+pkg_install m4-1.4.14-1 || exit 2
+#pkg_install libsigc++-2.3.1-1 || exit 2
 
 #########
 # Unpack sources into dir under /var/tmp/src
-cd $(dirname $BUILDDIR); tar xf $SRC
+cd $(dirname $BUILDDIR); tar xzf $SRC
+cd $SRCVER
 
 #########
 # Patch
-cd $BUILDDIR || exit 1
 libtool_fix-1
 # patch -p1 < $PKGDIR/mypatch.pat
+export PTHREAD_LIBS=-lpthread
+#./autogen.sh
 
 #########
 # Configure
-B-configure-3 --prefix=/usr || exit 1
-[ -f config.log ] && cp -p config.log /var/log/config/$PKG-config.log
+B-configure-1 --prefix=/usr --disable-cplusplus || exit 1
 
 #########
 # Post configure patch
@@ -63,34 +62,27 @@ rm -rf "$DST"
 make install DESTDIR=$DST # --with-install-prefix may be an alternative
 
 #########
-# Convert man-pages
-cd $DST || exit 1
-# for f in $(find . -path \*man/man\*); do if [ -f $f ]; then groff -T utf8 -man $f > $f.txt; rm $f; fi; done
-
-#########
 # Check result
-cd $DST || exit 1
+cd $DST
 # [ -f usr/bin/myprog ] || exit 1
 # (ldd sbin/myprog|grep -qs "not a dynamic executable") || exit 1
 
 #########
 # Clean up
-cd $DST || exit 1
-# rm -rf usr/share usr/man
+cd $DST
+rm -rf usr/share/man usr/share/info usr/share/doc
 [ -d bin ] && strip bin/*
 [ -d usr/bin ] && strip usr/bin/*
-[ -d sbin ] && strip sbin/*
-[ -d usr/sbin ] && strip usr/sbin/*
 
 #########
 # Make package
-cd $DST || exit 1
+cd $DST
 tar czf /var/spool/pkg/$PKG.tar.gz .
 
 #########
 # Cleanup after a success
 cd /var/lib/build
 [ "$DEVEL" ] || rm -rf "$DST"
-[ "$DEVEL" ] || rm -rf "$BUILDDIR"
+#[ "$DEVEL" ] || rm -rf "$BUILDDIR"
 pkg_uninstall
 exit 0

@@ -25,6 +25,8 @@ pkg_uninstall # Uninstall any dependencies used by Fetch-source.sh
 
 #########
 # Install dependencies:
+pkg_available xz-5.0.3-1
+pkg_install xz-5.0.3-1 || exit 2
 
 #########
 # Unpack sources into dir under /var/tmp/src
@@ -47,7 +49,7 @@ B-configure-1 --prefix=/usr || exit 1
 #########
 # Compile
 make || exit 1
-
+chmod +x util/mm-common-prepare
 #########
 # Install into dir under /var/tmp/install
 rm -rf "$DST"
@@ -63,8 +65,8 @@ cd $DST
 # Clean up
 cd $DST
 rm -rf usr/share/man usr/share/info usr/share/doc
-[ -d bin ] && strip bin/*
-[ -d usr/bin ] && strip usr/bin/*
+#[ -d bin ] && strip bin/*
+#[ -d usr/bin ] && strip usr/bin/*
 
 #########
 # Make package

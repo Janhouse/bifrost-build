@@ -1,6 +1,6 @@
 #!/bin/bash
 
-SRCVER=xmlrpc-c-svn
+SRCVER=libtorrent-0.13.2
 PKG=$SRCVER-1 # with build version
 
 # PKGDIR is set by 'pkg_build'. Usually "/var/lib/build/all/$PKG".
@@ -25,32 +25,44 @@ pkg_uninstall # Uninstall any dependencies used by Fetch-source.sh
 
 #########
 # Install dependencies:
-pkg_available perl-5.10.1-1 autoconf-2.65-1 m4-1.4.14-1
+pkg_available uClibc-0.9.33.2-1 mm-common-0.9.6-1 perl-5.10.1-1 autoconf-2.65-1 m4-1.4.14-1 automake-1.13.1-1 pth-2.0.7-2 libtool-2.4-1 cppunit-1.13.1-1 pkg-config-0.23-1 openssl-1.0.1f-1 libsigc++-2.3.1-1
+pkg_install uClibc-0.9.33.2-1 || exit 2
+pkg_install mm-common-0.9.6-1 || exit 2
 pkg_install perl-5.10.1-1 || exit 2
 pkg_install autoconf-2.65-1 || exit 2
 pkg_install m4-1.4.14-1 || exit 2
+pkg_install automake-1.13.1-1 || exit 2
+pkg_install libtool-2.4-1 || exit 2
+pkg_install pth-2.0.7-2 || exit 2
+pkg_install cppunit-1.13.1-1 || exit 2
+pkg_install pkg-config-0.23-1 || exit 2
+pkg_install openssl-1.0.1f-1 || exit 2
+#pkg_install libsigc++-2.3.1-1 || exit 2
 #pkg_install libsigc++-2.3.1-1 || exit 2
 
 
 #########
 # Unpack sources into dir under /var/tmp/src
-#cd $(dirname $BUILDDIR); tar xzf $SRC
+cd $(dirname $BUILDDIR); tar xzf $SRC
 
 
 #########
 # Patch
-#cd $BUILDDIR
-cd /home/janhouse/src/xmlrpc-c-svn
+cd $BUILDDIR
+#cd /home/janhouse/src/libtorrent-0.13.2/
 
 libtool_fix-1
 # patch -p1 < $PKGDIR/mypatch.pat
-export PTHREAD_LIBS=-lpthread
-#./autogen.sh
+
+sed -i 's/AM_CONFIG_HEADER/AC_CONFIG_HEADERS/g' configure.ac
+
+#export PTHREAD_LIBS=-lpthread
+PTHREAD_LIBS=-lpthread ./autogen.sh
 
 #########
 # Configure
-B-configure-1 --prefix=/usr --disable-cplusplus || exit 1
-
+B-configure-1 --prefix=/usr --enable-static || exit 1
+#PTHREAD_LIBS=-lpthread ./configure --prefix=/usr --enable-static || exit 1
 #########
 # Post configure patch
 # patch -p0 < $PKGDIR/Makefile.pat

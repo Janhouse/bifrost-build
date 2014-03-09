@@ -28,7 +28,7 @@ pkg_uninstall # Uninstall any dependencies used by Fetch-source.sh
 # Install dependencies:
 # pkg_available dependency1-1 dependency2-1
 # pkg_install dependency1-1 || exit 2
-pkg_install ncurses-lib-5.7-1 || exit 2
+pkg_install ncurses-lib-5.9-1 || exit 2
 pkg_install perl-5.10.1-1 || exit 2
 
 #########

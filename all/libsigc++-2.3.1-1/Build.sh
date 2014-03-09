@@ -25,10 +25,13 @@ pkg_uninstall # Uninstall any dependencies used by Fetch-source.sh
 
 #########
 # Install dependencies:
-pkg_available perl-5.10.1-1 autoconf-2.65-1 m4-1.4.14-1
+pkg_available uClibc-0.9.33.2-1 mm-common-0.9.6-1 perl-5.10.1-1 autoconf-2.65-1 m4-1.4.14-1 xz-5.0.3-1
+pkg_install uClibc-0.9.33.2-1 || exit 2
+pkg_install mm-common-0.9.6-1 || exit 2
 pkg_install perl-5.10.1-1 || exit 2
 pkg_install autoconf-2.65-1 || exit 2
 pkg_install m4-1.4.14-1 || exit 2
+pkg_install xz-5.0.3-1 || exit 2
 
 #########
 # Unpack sources into dir under /var/tmp/src

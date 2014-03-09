@@ -1,18 +1,17 @@
 #!/bin/bash
 
-SRCVER=curl-devel-7.20.1
-PKG=$SRCVER-1 # with build version
+SRCVER=ncurses-5.9
+PKG=ncurses-lib-5.9-1 # with build version
 
 PKGDIR=${PKGDIR:-/var/lib/build/all/$PKG}
-SRC=/var/spool/src/curl-7.20.1.tar.bz2
-BUILDDIR=/var/tmp/src/curl-7.20.1
+SRC=/var/spool/src/$SRCVER.tar.gz
+BUILDDIR=/var/tmp/src/$SRCVER
 DST="/var/tmp/install/$PKG"
 
 #########
 # Install dependencies:
-pkg_available openssl-1.0.1f-1 zlib-1.2.7-1
-pkg_install openssl-1.0.1f-1 || exit 2
-pkg_install zlib-1.2.7-1 || exit 2
+# pkg_available dependency1-1 dependency2-1
+# pkg_install dependency1-1 || exit 1
 
 #########
 # Unpack sources into dir under /var/tmp/src
@@ -27,7 +26,7 @@ libtool_fix-1
 
 #########
 # Configure
-$PKGDIR/B-configure-1 --prefix=/usr --without-ca-bundle --with-ca-path=/etc/ssl/certs || exit 1
+B-configure-1 --prefix=/usr || exit 1
 
 #########
 # Post configure patch
@@ -41,7 +40,6 @@ make -j || exit 1
 # Install into dir under /var/tmp/install
 rm -rf "$DST"
 make install DESTDIR=$DST # --with-install-prefix may be an alternative
-chmod +x $DST/usr/bin/curl-config
 
 #########
 # Check result
@@ -52,10 +50,11 @@ cd $DST
 #########
 # Clean up
 cd $DST
-rm -f usr/bin/curl
-rm -rf usr/share
-#[ -d bin ] && strip bin/*
-#[ -d usr/bin ] && strip usr/bin/*
+mv usr/bin/ncurses5-config .
+rm -rf usr/man usr/bin usr/share
+mkdir -p usr/bin
+mv ncurses5-config usr/bin
+chmod +x usr/bin/ncurses5-config
 
 #########
 # Make package
