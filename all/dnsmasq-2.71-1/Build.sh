@@ -1,11 +1,11 @@
 #!/bin/bash
 
-SRCVER=glib-2.24.2
-PKG=musl-$SRCVER-2 # with build version
+SRCVER=dnsmasq-2.71
+PKG=$SRCVER-1 # with build version
 
 # PKGDIR is set by 'pkg_build'. Usually "/var/lib/build/all/$PKG".
 PKGDIR=${PKGDIR:-/var/lib/build/all/$PKG}
-SRC=/var/spool/src/$SRCVER.tar.bz2
+SRC=/var/spool/src/$SRCVER.tar.gz
 BUILDDIR=/var/tmp/src/$SRCVER
 DST="/var/tmp/install/$PKG"
 
@@ -26,17 +26,10 @@ pkg_uninstall # Uninstall any dependencies used by Fetch-source.sh
 #########
 # Install dependencies:
 # pkg_available dependency1-1 dependency2-1
-pkg_install pkg-config-0.23-1 || exit 2
-#pkg_install musl-libiconv-1.13.1-1 || exit 2
-pkg_install musl-zlib-1.2.7-1 || exit 2
-#pkg_install musl-fake-libintl-2 || exit 2
-pkg_install musl-gettext-0.18.2-1 || exit 2
-
-# Compile against musl:
-#pkg_install musl-0.9.9-1 || exit 2
-#export CC=musl-gcc
-# pkg_install musl-1.1.3-1 || exit 2 
-# export CC=musl-gcc
+pkg_install gawk-3.1.8-1 || exit 2
+pkg_install musl-1.1.3-1 || exit 2 
+pkg_install musl-kernel-headers-3.6.0-1 || exit 2
+export CC=musl-gcc
 
 #########
 # Unpack sources into dir under /var/tmp/src
@@ -50,8 +43,7 @@ libtool_fix-1
 
 #########
 # Configure
-B-configure-2 --prefix=/opt/musl --without-pic --sysconfdir=/etc || exit 1
-[ -f config.log ] && cp -p config.log /var/log/config/$PKG-config.log
+sedit 's,usr/local,,g' Makefile
 
 #########
 # Post configure patch
@@ -59,12 +51,14 @@ B-configure-2 --prefix=/opt/musl --without-pic --sysconfdir=/etc || exit 1
 
 #########
 # Compile
-make || exit 1
+make AWK=gawk LDFLAGS="-static" CFLAGS="-Os -march=i586" || exit 1
 
 #########
 # Install into dir under /var/tmp/install
 rm -rf "$DST"
-make install DESTDIR=$DST # --with-install-prefix may be an alternative
+make install DESTDIR=$DST
+mkdir -p $DST/etc/config.preconf
+cp dnsmasq.conf.example $DST/etc/config.preconf/dnsmasq.conf.default
 
 #########
 # Check result
@@ -75,9 +69,8 @@ cd $DST
 #########
 # Clean up
 cd $DST
-# rm -rf usr/share usr/man
-[ -d bin ] && strip bin/*
-[ -d usr/bin ] && strip usr/bin/*
+rm -rf share
+strip sbin/*
 
 #########
 # Make package
