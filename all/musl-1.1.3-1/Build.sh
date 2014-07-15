@@ -1,11 +1,12 @@
 #!/bin/bash
 
-SRCVER=glib-2.24.2
-PKG=musl-$SRCVER-2 # with build version
+SRCVER=musl-1.1.3
+PKG=$SRCVER-1 # with build version
 
 # PKGDIR is set by 'pkg_build'. Usually "/var/lib/build/all/$PKG".
 PKGDIR=${PKGDIR:-/var/lib/build/all/$PKG}
-SRC=/var/spool/src/$SRCVER.tar.bz2
+SRC=/var/spool/src/$SRCVER.tar.gz
+[ -f /var/spool/src/$SRCVER.tar.bz2 ] && SRC=/var/spool/src/$SRCVER.tar.bz2
 BUILDDIR=/var/tmp/src/$SRCVER
 DST="/var/tmp/install/$PKG"
 
@@ -20,37 +21,28 @@ function sedit {
 
 #########
 # Fetch sources
-./Fetch-source.sh || exit 1
+./Fetch-source.sh || exit $?
 pkg_uninstall # Uninstall any dependencies used by Fetch-source.sh
 
 #########
 # Install dependencies:
 # pkg_available dependency1-1 dependency2-1
-pkg_install pkg-config-0.23-1 || exit 2
-#pkg_install musl-libiconv-1.13.1-1 || exit 2
-pkg_install musl-zlib-1.2.7-1 || exit 2
-#pkg_install musl-fake-libintl-2 || exit 2
-pkg_install musl-gettext-0.18.2-1 || exit 2
-
-# Compile against musl:
-#pkg_install musl-0.9.9-1 || exit 2
-#export CC=musl-gcc
-# pkg_install musl-1.1.3-1 || exit 2 
-# export CC=musl-gcc
+# pkg_install dependency1-1 || exit 2
+pkg_install binutils-2.20.1-1 || exit 2
 
 #########
 # Unpack sources into dir under /var/tmp/src
-cd $(dirname $BUILDDIR); tar xf $SRC
+cd $(dirname $BUILDDIR); tar xf $SRC || exit 1
 
 #########
 # Patch
-cd $BUILDDIR
+cd $BUILDDIR || exit 1
 libtool_fix-1
-# patch -p1 < $PKGDIR/mypatch.pat
+#patch -p0 < $PKGDIR/time_h.pat || exit 1
 
 #########
 # Configure
-B-configure-2 --prefix=/opt/musl --without-pic --sysconfdir=/etc || exit 1
+$PKGDIR/B-configure-1 --prefix=/opt/musl --bindir=/usr/bin --disable-shared|| exit 1
 [ -f config.log ] && cp -p config.log /var/log/config/$PKG-config.log
 
 #########
@@ -65,23 +57,40 @@ make || exit 1
 # Install into dir under /var/tmp/install
 rm -rf "$DST"
 make install DESTDIR=$DST # --with-install-prefix may be an alternative
+mkdir -p $DST/etc
+echo /opt/musl/lib > $DST/etc/ld-musl-x86_64.path
+echo /opt/musl/lib > $DST/etc/ld-musl-i386.path
+echo /opt/musl/lib > $DST/etc/ld-musl-i486.path
+echo /opt/musl/lib > $DST/etc/ld-musl-i586.path
+echo /opt/musl/lib > $DST/etc/ld-musl-i686.path
+
+cd $DST || exit 1
+cp opt/musl/lib/musl-gcc.specs opt/musl/lib/musl-gcc.specs.orig
+patch -p0 < $PKGDIR/musl-gcc.specs.pat || exit 1
+
+echo ::::: musl-gcc.specs ::::::
+diff -u opt/musl/lib/musl-gcc.specs.orig opt/musl/lib/musl-gcc.specs
+echo ::::: musl-gcc ::::::
+diff -u usr/bin/musl-gcc $PKGDIR/musl-gcc
+echo :::::::::::
+cp $PKGDIR/musl-gcc usr/bin/musl-gcc || exit 1
 
 #########
 # Check result
-cd $DST
+cd $DST || exit 1
 # [ -f usr/bin/myprog ] || exit 1
 # (ldd sbin/myprog|grep -qs "not a dynamic executable") || exit 1
 
 #########
 # Clean up
-cd $DST
+cd $DST || exit 1
 # rm -rf usr/share usr/man
 [ -d bin ] && strip bin/*
 [ -d usr/bin ] && strip usr/bin/*
 
 #########
 # Make package
-cd $DST
+cd $DST || exit 1
 tar czf /var/spool/pkg/$PKG.tar.gz .
 
 #########

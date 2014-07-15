@@ -32,6 +32,7 @@ pkg_install libpcap-1.1.1-1 || exit 2
 
 # Compile against musl:
 # pkg_install musl-0.9.9-2 || exit 2 
+# pkg_install musl-1.1.3-1 || exit 2 
 # export CC=musl-gcc
 
 #########
